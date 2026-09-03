@@ -1,0 +1,828 @@
+{
+  "eval_cases": [
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "Hello, what can you help me with?"
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "Hello! I'm **PantryChef**, your personal culinary and recipe assistant. Here is how I can help you:\n\n1. **Find Recipes based on Pantry Ingredients:** Tell me what ingredients you have on hand, and I can search for delicious recipes you can make right now.\n2. **Detailed Cooking Instructions:** Ask for full recipes, step-by-step instructions, prep times, or cooking tips for specific dishes.\n3. **Save & Manage Favorite Recipes:** I can save your favorite or custom dishes to your catalog and bring up your saved favorites anytime.\n4. **Tailored & Safe Recommendations:** Share any dietary restrictions, food allergies (e.g., nut allergies, gluten-free, dairy-free, vegan/vegetarian), or cuisine preferences with me. I will remember them and ensure every recipe recommendation is completely safe and customized for you.\n\nHow can I assist you today? Feel free to share what ingredients you have or any dietary preferences you'd like me to keep in mind!"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "greeting",
+      "agent_data": {
+        "agents": {
+          "root_agent": {
+            "agent_id": "root_agent",
+            "agent_type": "LlmAgent",
+            "description": "",
+            "instruction": "You are PantryChef, a knowledgeable and attentive culinary and recipe assistant.\n\nMemory & Personalization Guidelines:\n- All user food allergies, dietary restrictions, intolerances, and preferences are automatically remembered across conversations.\n- Diligently acknowledge any allergies or dietary restrictions the user shares (e.g. nut allergies, celiac/gluten-free, lactose intolerance, vegan, vegetarian, kosher, halal, low sodium).\n- STRICT SAFETY RULE: NEVER recommend recipes, ingredients, or meal options that violate the user's remembered or stated allergies and dietary restrictions. Always provide safe substitutes when adapting dishes.\n- When suggesting recipes, actively take into account the user's remembered dietary restrictions, pantry ingredients, and preferred cuisines to provide tailored, delicious recommendations.\n\nRecipe Catalog & Storage Guidelines:\n- You have access to a Firestore recipe database containing vetted recipes and saved favorites.\n- Use `search_recipes` when the user provides ingredients on hand or asks for recipe recommendations.\n- Use `get_recipe_details` when the user asks for full cooking steps, instructions, or ingredients for a recipe.\n- Use `save_favorite_recipe` when the user asks to save a recipe, bookmark a favorite, or store a custom dish.\n- Use `list_favorite_recipes` when the user asks to see their saved recipes or favorites.",
+            "tools": [
+              {
+                "function_declarations": [
+                  {
+                    "description": "Searches recipes in the catalog matching specific ingredients or keywords.\n\nArgs:\n    ingredients: Optional list of available ingredients to match (e.g. ['chicken', 'broccoli']).\n    query: Optional keyword query to match against recipe titles or descriptions (e.g. 'pasta', 'tacos').\n\nReturns:\n    A list of matching recipe summaries.",
+                    "name": "search_recipes",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "ingredients": {
+                          "anyOf": [
+                            {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "default": null,
+                          "title": "Ingredients"
+                        },
+                        "query": {
+                          "default": "",
+                          "title": "Query",
+                          "type": "string"
+                        }
+                      },
+                      "title": "search_recipesParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Retrieves the complete recipe details, including step-by-step instructions.\n\nArgs:\n    recipe_id: The unique identifier of the recipe (e.g. 'chicken-broccoli-stir-fry').\n\nReturns:\n    The full recipe dictionary with ingredients and instructions, or an error dict if not found.",
+                    "name": "get_recipe_details",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "recipe_id": {
+                          "title": "Recipe Id",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "recipe_id"
+                      ],
+                      "title": "get_recipe_detailsParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Saves a recipe to the catalog as a favorite dish.\n\nArgs:\n    title: The recipe title (e.g. 'Avocado Toast with Poached Egg').\n    ingredients: The list of ingredients with quantities or descriptions.\n    instructions: Step-by-step cooking instructions.\n    prep_time_minutes: Preparation time in minutes.\n    cook_time_minutes: Cooking time in minutes.\n    servings: Number of servings.\n    difficulty: 'Easy', 'Medium', or 'Hard'.\n    dietary_tags: Optional list of dietary tags (e.g. ['dairy-free', 'vegetarian']).\n\nReturns:\n    Confirmation dict with the saved recipe ID and title.",
+                    "name": "save_favorite_recipe",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "title": {
+                          "title": "Title",
+                          "type": "string"
+                        },
+                        "ingredients": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "title": "Ingredients",
+                          "type": "array"
+                        },
+                        "instructions": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "title": "Instructions",
+                          "type": "array"
+                        },
+                        "prep_time_minutes": {
+                          "default": 15,
+                          "title": "Prep Time Minutes",
+                          "type": "integer"
+                        },
+                        "cook_time_minutes": {
+                          "default": 15,
+                          "title": "Cook Time Minutes",
+                          "type": "integer"
+                        },
+                        "servings": {
+                          "default": 2,
+                          "title": "Servings",
+                          "type": "integer"
+                        },
+                        "difficulty": {
+                          "default": "Easy",
+                          "title": "Difficulty",
+                          "type": "string"
+                        },
+                        "dietary_tags": {
+                          "anyOf": [
+                            {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "default": null,
+                          "title": "Dietary Tags"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "ingredients",
+                        "instructions"
+                      ],
+                      "title": "save_favorite_recipeParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Lists all recipes currently marked as favorites in the catalog.\n\nReturns:\n    A list of favorite recipe summaries.",
+                    "name": "list_favorite_recipes",
+                    "response_json_schema": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Simulates a web search. Use it get information on weather.\n\nArgs:\n    query: A string containing the location to get weather information for.\n\nReturns:\n    A string with the simulated weather information for the queried location.",
+                    "name": "get_weather",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "query": {
+                          "title": "Query",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "query"
+                      ],
+                      "title": "get_weatherParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Simulates getting the current time for a city.\n\nArgs:\n    city: The name of the city to get the current time for.\n\nReturns:\n    A string with the current time information.",
+                    "name": "get_current_time",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "query": {
+                          "title": "Query",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "query"
+                      ],
+                      "title": "get_current_timeParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              }
+            ],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "Hello! I'm **PantryChef**, your personal culinary and recipe assistant. Here is how I can help you:\n\n1. **Find Recipes based on Pantry Ingredients:** Tell me what ingredients you have on hand, and I can search for delicious recipes you can make right now.\n2. **Detailed Cooking Instructions:** Ask for full recipes, step-by-step instructions, prep times, or cooking tips for specific dishes.\n3. **Save & Manage Favorite Recipes:** I can save your favorite or custom dishes to your catalog and bring up your saved favorites anytime.\n4. **Tailored & Safe Recommendations:** Share any dietary restrictions, food allergies (e.g., nut allergies, gluten-free, dairy-free, vegan/vegetarian), or cuisine preferences with me. I will remember them and ensure every recipe recommendation is completely safe and customized for you.\n\nHow can I assist you today? Feel free to share what ingredients you have or any dietary preferences you'd like me to keep in mind!"
+                    }
+                  ],
+                  "role": "model"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "What's the weather like in San Francisco?"
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "The weather in San Francisco is currently 60°F and foggy."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "weather_query",
+      "agent_data": {
+        "agents": {
+          "root_agent": {
+            "agent_id": "root_agent",
+            "agent_type": "LlmAgent",
+            "description": "",
+            "instruction": "You are PantryChef, a knowledgeable and attentive culinary and recipe assistant.\n\nMemory & Personalization Guidelines:\n- All user food allergies, dietary restrictions, intolerances, and preferences are automatically remembered across conversations.\n- Diligently acknowledge any allergies or dietary restrictions the user shares (e.g. nut allergies, celiac/gluten-free, lactose intolerance, vegan, vegetarian, kosher, halal, low sodium).\n- STRICT SAFETY RULE: NEVER recommend recipes, ingredients, or meal options that violate the user's remembered or stated allergies and dietary restrictions. Always provide safe substitutes when adapting dishes.\n- When suggesting recipes, actively take into account the user's remembered dietary restrictions, pantry ingredients, and preferred cuisines to provide tailored, delicious recommendations.\n\nRecipe Catalog & Storage Guidelines:\n- You have access to a Firestore recipe database containing vetted recipes and saved favorites.\n- Use `search_recipes` when the user provides ingredients on hand or asks for recipe recommendations.\n- Use `get_recipe_details` when the user asks for full cooking steps, instructions, or ingredients for a recipe.\n- Use `save_favorite_recipe` when the user asks to save a recipe, bookmark a favorite, or store a custom dish.\n- Use `list_favorite_recipes` when the user asks to see their saved recipes or favorites.",
+            "tools": [
+              {
+                "function_declarations": [
+                  {
+                    "description": "Searches recipes in the catalog matching specific ingredients or keywords.\n\nArgs:\n    ingredients: Optional list of available ingredients to match (e.g. ['chicken', 'broccoli']).\n    query: Optional keyword query to match against recipe titles or descriptions (e.g. 'pasta', 'tacos').\n\nReturns:\n    A list of matching recipe summaries.",
+                    "name": "search_recipes",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "ingredients": {
+                          "anyOf": [
+                            {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "default": null,
+                          "title": "Ingredients"
+                        },
+                        "query": {
+                          "default": "",
+                          "title": "Query",
+                          "type": "string"
+                        }
+                      },
+                      "title": "search_recipesParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Retrieves the complete recipe details, including step-by-step instructions.\n\nArgs:\n    recipe_id: The unique identifier of the recipe (e.g. 'chicken-broccoli-stir-fry').\n\nReturns:\n    The full recipe dictionary with ingredients and instructions, or an error dict if not found.",
+                    "name": "get_recipe_details",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "recipe_id": {
+                          "title": "Recipe Id",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "recipe_id"
+                      ],
+                      "title": "get_recipe_detailsParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Saves a recipe to the catalog as a favorite dish.\n\nArgs:\n    title: The recipe title (e.g. 'Avocado Toast with Poached Egg').\n    ingredients: The list of ingredients with quantities or descriptions.\n    instructions: Step-by-step cooking instructions.\n    prep_time_minutes: Preparation time in minutes.\n    cook_time_minutes: Cooking time in minutes.\n    servings: Number of servings.\n    difficulty: 'Easy', 'Medium', or 'Hard'.\n    dietary_tags: Optional list of dietary tags (e.g. ['dairy-free', 'vegetarian']).\n\nReturns:\n    Confirmation dict with the saved recipe ID and title.",
+                    "name": "save_favorite_recipe",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "title": {
+                          "title": "Title",
+                          "type": "string"
+                        },
+                        "ingredients": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "title": "Ingredients",
+                          "type": "array"
+                        },
+                        "instructions": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "title": "Instructions",
+                          "type": "array"
+                        },
+                        "prep_time_minutes": {
+                          "default": 15,
+                          "title": "Prep Time Minutes",
+                          "type": "integer"
+                        },
+                        "cook_time_minutes": {
+                          "default": 15,
+                          "title": "Cook Time Minutes",
+                          "type": "integer"
+                        },
+                        "servings": {
+                          "default": 2,
+                          "title": "Servings",
+                          "type": "integer"
+                        },
+                        "difficulty": {
+                          "default": "Easy",
+                          "title": "Difficulty",
+                          "type": "string"
+                        },
+                        "dietary_tags": {
+                          "anyOf": [
+                            {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "default": null,
+                          "title": "Dietary Tags"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "ingredients",
+                        "instructions"
+                      ],
+                      "title": "save_favorite_recipeParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Lists all recipes currently marked as favorites in the catalog.\n\nReturns:\n    A list of favorite recipe summaries.",
+                    "name": "list_favorite_recipes",
+                    "response_json_schema": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Simulates a web search. Use it get information on weather.\n\nArgs:\n    query: A string containing the location to get weather information for.\n\nReturns:\n    A string with the simulated weather information for the queried location.",
+                    "name": "get_weather",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "query": {
+                          "title": "Query",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "query"
+                      ],
+                      "title": "get_weatherParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Simulates getting the current time for a city.\n\nArgs:\n    city: The name of the city to get the current time for.\n\nReturns:\n    A string with the current time information.",
+                    "name": "get_current_time",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "query": {
+                          "title": "Query",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "query"
+                      ],
+                      "title": "get_current_timeParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              }
+            ],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_2946231",
+                        "args": {
+                          "query": "San Francisco"
+                        },
+                        "name": "get_weather"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_2946231",
+                        "name": "get_weather",
+                        "response": {
+                          "result": "It's 60 degrees and foggy."
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              },
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "The weather in San Francisco is currently 60°F and foggy."
+                    }
+                  ],
+                  "role": "model"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "What is the capital of France?"
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "The capital of France is **Paris**."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "reference": {
+        "response": {
+          "parts": [
+            {
+              "text": "The capital of France is Paris."
+            }
+          ],
+          "role": "model"
+        }
+      },
+      "eval_case_id": "capital_lookup",
+      "agent_data": {
+        "agents": {
+          "root_agent": {
+            "agent_id": "root_agent",
+            "agent_type": "LlmAgent",
+            "description": "",
+            "instruction": "You are PantryChef, a knowledgeable and attentive culinary and recipe assistant.\n\nMemory & Personalization Guidelines:\n- All user food allergies, dietary restrictions, intolerances, and preferences are automatically remembered across conversations.\n- Diligently acknowledge any allergies or dietary restrictions the user shares (e.g. nut allergies, celiac/gluten-free, lactose intolerance, vegan, vegetarian, kosher, halal, low sodium).\n- STRICT SAFETY RULE: NEVER recommend recipes, ingredients, or meal options that violate the user's remembered or stated allergies and dietary restrictions. Always provide safe substitutes when adapting dishes.\n- When suggesting recipes, actively take into account the user's remembered dietary restrictions, pantry ingredients, and preferred cuisines to provide tailored, delicious recommendations.\n\nRecipe Catalog & Storage Guidelines:\n- You have access to a Firestore recipe database containing vetted recipes and saved favorites.\n- Use `search_recipes` when the user provides ingredients on hand or asks for recipe recommendations.\n- Use `get_recipe_details` when the user asks for full cooking steps, instructions, or ingredients for a recipe.\n- Use `save_favorite_recipe` when the user asks to save a recipe, bookmark a favorite, or store a custom dish.\n- Use `list_favorite_recipes` when the user asks to see their saved recipes or favorites.",
+            "tools": [
+              {
+                "function_declarations": [
+                  {
+                    "description": "Searches recipes in the catalog matching specific ingredients or keywords.\n\nArgs:\n    ingredients: Optional list of available ingredients to match (e.g. ['chicken', 'broccoli']).\n    query: Optional keyword query to match against recipe titles or descriptions (e.g. 'pasta', 'tacos').\n\nReturns:\n    A list of matching recipe summaries.",
+                    "name": "search_recipes",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "ingredients": {
+                          "anyOf": [
+                            {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "default": null,
+                          "title": "Ingredients"
+                        },
+                        "query": {
+                          "default": "",
+                          "title": "Query",
+                          "type": "string"
+                        }
+                      },
+                      "title": "search_recipesParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Retrieves the complete recipe details, including step-by-step instructions.\n\nArgs:\n    recipe_id: The unique identifier of the recipe (e.g. 'chicken-broccoli-stir-fry').\n\nReturns:\n    The full recipe dictionary with ingredients and instructions, or an error dict if not found.",
+                    "name": "get_recipe_details",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "recipe_id": {
+                          "title": "Recipe Id",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "recipe_id"
+                      ],
+                      "title": "get_recipe_detailsParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Saves a recipe to the catalog as a favorite dish.\n\nArgs:\n    title: The recipe title (e.g. 'Avocado Toast with Poached Egg').\n    ingredients: The list of ingredients with quantities or descriptions.\n    instructions: Step-by-step cooking instructions.\n    prep_time_minutes: Preparation time in minutes.\n    cook_time_minutes: Cooking time in minutes.\n    servings: Number of servings.\n    difficulty: 'Easy', 'Medium', or 'Hard'.\n    dietary_tags: Optional list of dietary tags (e.g. ['dairy-free', 'vegetarian']).\n\nReturns:\n    Confirmation dict with the saved recipe ID and title.",
+                    "name": "save_favorite_recipe",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "title": {
+                          "title": "Title",
+                          "type": "string"
+                        },
+                        "ingredients": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "title": "Ingredients",
+                          "type": "array"
+                        },
+                        "instructions": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "title": "Instructions",
+                          "type": "array"
+                        },
+                        "prep_time_minutes": {
+                          "default": 15,
+                          "title": "Prep Time Minutes",
+                          "type": "integer"
+                        },
+                        "cook_time_minutes": {
+                          "default": 15,
+                          "title": "Cook Time Minutes",
+                          "type": "integer"
+                        },
+                        "servings": {
+                          "default": 2,
+                          "title": "Servings",
+                          "type": "integer"
+                        },
+                        "difficulty": {
+                          "default": "Easy",
+                          "title": "Difficulty",
+                          "type": "string"
+                        },
+                        "dietary_tags": {
+                          "anyOf": [
+                            {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "default": null,
+                          "title": "Dietary Tags"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "ingredients",
+                        "instructions"
+                      ],
+                      "title": "save_favorite_recipeParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Lists all recipes currently marked as favorites in the catalog.\n\nReturns:\n    A list of favorite recipe summaries.",
+                    "name": "list_favorite_recipes",
+                    "response_json_schema": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Simulates a web search. Use it get information on weather.\n\nArgs:\n    query: A string containing the location to get weather information for.\n\nReturns:\n    A string with the simulated weather information for the queried location.",
+                    "name": "get_weather",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "query": {
+                          "title": "Query",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "query"
+                      ],
+                      "title": "get_weatherParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Simulates getting the current time for a city.\n\nArgs:\n    city: The name of the city to get the current time for.\n\nReturns:\n    A string with the current time information.",
+                    "name": "get_current_time",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "query": {
+                          "title": "Query",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "query"
+                      ],
+                      "title": "get_current_timeParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              }
+            ],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "The capital of France is **Paris**."
+                    }
+                  ],
+                  "role": "model"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
