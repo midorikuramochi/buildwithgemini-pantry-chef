@@ -103,7 +103,44 @@ pantry-chef/
 
 ---
 
+## 🛠️ Run It Yourself
+
+To deploy and run PantryChef in your own Google Cloud environment, please note that `PROJECT_ID`, the Cloud Storage bucket name (`pantry-chef-dishes-*`), and the Vertex AI RAG corpus resource name are hardcoded in the workshop implementation and must be replaced with your own GCP values across `app/agent.py`, `scripts/seed_firestore.py`, and `frontend/main.py`.
+
+### High-Level Steps
+
+1. **Seed Firestore**:
+   Create a Firestore database in your GCP project and populate the initial recipe catalog:
+   ```bash
+   uv run python scripts/seed_firestore.py
+   ```
+
+2. **Create the RAG Corpus**:
+   Set up a Vertex AI RAG Engine serverless corpus with your culinary/herbal documents (e.g. Culpeper's Herbal) and update the corpus resource name in `app/agent.py`.
+
+3. **Deploy the Agent (`agents-cli deploy`)**:
+   Deploy the backend agent to Vertex AI Reasoning Engine on Agent Platform:
+   ```bash
+   agents-cli deploy
+   ```
+
+4. **Deploy the Frontend to Cloud Run (`gcloud run deploy`)**:
+   Deploy the containerized FastAPI proxy and chat interface:
+   ```bash
+   cd frontend
+   gcloud run deploy pantry-chef-frontend \
+     --source . \
+     --region <your-region> \
+     --set-env-vars AGENT_ENGINE_RESOURCE_NAME="<your-reasoning-engine-resource-name>",AGENT_DIRECTORY="app" \
+     --allow-unauthenticated
+   ```
+
+---
+
 ## 🌐 Deployed Service
 
-- **Cloud Run Chat Interface**: [https://pantry-chef-frontend-629547557339.us-east1.run.app](https://pantry-chef-frontend-629547557339.us-east1.run.app)
-- **Agent Platform Target**: Vertex AI Reasoning Engine (`us-east1`) over A2A protocol.
+> [!NOTE]
+> The live Cloud Run service and Agent Platform deployment referenced below were hosted in a temporary **Build with Gemini** workshop lab environment and are no longer live. Please refer to the **[demo GIF](#pantrychef)** at the top of this README as the interactive showcase of the agent in action!
+
+- **Cloud Run Chat Interface**: `https://pantry-chef-frontend-629547557339.us-east1.run.app` *(offline / workshop lab concluded)*
+- **Agent Platform Target**: Vertex AI Reasoning Engine (`us-east1`) over A2A protocol *(offline / workshop lab concluded)*
